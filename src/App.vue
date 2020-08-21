@@ -1,29 +1,31 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
+    <clip
+      :src="src"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import HelloWorld from './components/HelloWorld.vue';
+import { Component, Vue } from "vue-property-decorator";
+import clip from "@/plugin/index.vue";
 
 @Component({
   components: {
-    HelloWorld,
+    clip,
   },
 })
-export default class App extends Vue {}
+export default class App extends Vue {
+  private src: any = require("./assets/1.jpeg");
+}
 </script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+<style lang="scss" scoped>
+#app{
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  margin: 0px auto;
+  padding: 20px;
 }
 </style>
