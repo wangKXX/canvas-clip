@@ -25,6 +25,8 @@ export default class ClipMask extends Vue {
 
   private left: number = 1;
   private top: number = 1;
+  private cacheTop: number = 1;
+  private cacheLeft: number = 1;
   private startX!: number;
   private startY!: number;
   private offsetLeft!: number;
@@ -34,6 +36,8 @@ export default class ClipMask extends Vue {
   private moving: boolean = false;
   private clipHeight: number = 300;
   private clipWidth: number = 300;
+  private cacheClipHeight: number = 300;
+  private cacheClipWidth: number = 300;
   private timer!: any;
   private selectPoint!: any;
   private maskCanvasCtx!: any;
@@ -41,6 +45,8 @@ export default class ClipMask extends Vue {
   private maskCanvasData!: any;
   private borderPath!: any;
   private menuPoints!: object[];
+  private isPointMoving: boolean = false;
+  private currentPoint!: any;
 
   @Watch("clipHeight")
   @Watch("clipWidth")
@@ -61,6 +67,16 @@ export default class ClipMask extends Vue {
     this.initMaskCanvas();
   }
 
+  @Watch("initClipWidth")
+  @Watch("initClipHeight")
+  private oninitChange(value: any) {
+    Object.assign(this, {
+      clipHeight: this.initClipHeight || 300,
+      clipWidth: this.initClipWidth || 300,
+    });
+    this.initMaskCanvas(true);
+  }
+
   private created() {
     document.addEventListener("mouseup", this.resetStatus);
     Object.assign(this, {
@@ -77,7 +93,7 @@ export default class ClipMask extends Vue {
     document.removeEventListener("mouseup", this.resetStatus);
   }
 
-  private initMaskCanvas() {
+  private initMaskCanvas(setTopLeft?: boolean) {
     const { maskCanvas } = this.$refs;
     const { width, height } = this;
     maskCanvas.width = width;
@@ -85,7 +101,9 @@ export default class ClipMask extends Vue {
     this.maskCanvasCtx = maskCanvas.getContext("2d");
     this.maskCanvasClear();
     this.dashBorderLinemarch();
-    this.setInitTopLeft();
+    if (!setTopLeft) {
+      this.setInitTopLeft();
+    }
   }
 
   private setInitTopLeft() {
@@ -177,7 +195,13 @@ export default class ClipMask extends Vue {
   private setCursor(x: number, y: number, target: HTMLCanvasElement): void {
     const { clipWidth, clipHeight, top, left } = this;
     const path = this.getPath2DRect(left, top, clipWidth, clipHeight);
-    if (this.isPointInClip(x, y, path)) {
+    const { menuPoints } = this;
+    const point = menuPoints.find((obj: { [key: string]: any }) => {
+      const { x: X, y: Y } = obj;
+      const pointPath = this.getPath2DRect(X - 4, Y - 4, 9, 9);
+      return this.isPointInClip(x, y, pointPath);
+    });
+    if (this.isPointInClip(x, y, path) && !point) {
       target.style.cursor = "move";
     } else {
       target.style.cursor = "pointer";
@@ -216,39 +240,12 @@ export default class ClipMask extends Vue {
     return new Path2D(`M${x} ${y} h ${width} v ${height} h -${width} Z`);
   }
 
-  // private getPath2DArc(x: number, y: number): Path2D {
-  //   /**
-  //    * M cx, cy
-  //       m -r, 0
-  //       a r,r 0 1,0 (r * 2),0
-  //       a r,r 0 1,0 -(r * 2),0
-
-  //    */
-  //   return new Path2D(
-  //     `M ${x}, ${y} m -5, 0 a 5,5 0 1,0 (${5} * 2),0 a 5, 5 0 1,0 (${5} * 2),0`
-  //   );
-  // }
-
   /**
    * 鼠标是否在裁剪区域
    */
   private isPointInClip(x: number, y: number, path: Path2D): boolean {
     const { maskCanvasCtx, top, left, clipWidth, clipHeight } = this;
     return maskCanvasCtx.isPointInPath(path, x, y);
-  }
-
-  private isPointInClipBorder(x: number, y: number): boolean {
-    const { maskCanvasCtx } = this;
-    return maskCanvasCtx.isPointInStroke(x, y);
-  }
-
-  private getLocation(x: number, y: number) {
-    const { maskCanvas } = this.$refs;
-    const bbox = maskCanvas.getBoundingClientRect();
-    return {
-      x: x - bbox.left,
-      y: y - bbox.top,
-    };
   }
 
   private saveMaskCanvasData(): void {
@@ -289,6 +286,10 @@ export default class ClipMask extends Vue {
     this.startX = offsetX + 1;
     this.offsetTop = this.top;
     this.offsetLeft = this.left;
+    this.cacheClipWidth = this.clipWidth;
+    this.cacheClipHeight = this.clipHeight;
+    this.cacheTop = this.top;
+    this.cacheLeft = this.left;
     this.saveMaskCanvasData();
   }
 
@@ -298,17 +299,24 @@ export default class ClipMask extends Vue {
     const path = this.getPath2DRect(left, top, clipWidth, clipHeight);
     this.setCursor(offsetX, offsetY, target);
     if (this.moving) {
-      if (this.isPointInClip(offsetX, offsetY, path)) {
+      const { menuPoints } = this;
+      let point = menuPoints.find((obj: { [key: string]: any }) => {
+        const { x, y } = obj;
+        const pointPath = this.getPath2DRect(x - 4, y - 4, 9, 9);
+        return this.isPointInClip(offsetX, offsetY, pointPath);
+      });
+      if (
+        this.isPointInClip(offsetX, offsetY, path) &&
+        !this.isPointMoving &&
+        !point
+      ) {
         this.moveClip(offsetX, offsetY);
       } else {
         // 判断是否在操作点上
-        const { menuPoints } = this;
-        const point = menuPoints.find((obj: {[key: string]: any}) => {
-          const { x, y } = obj;
-          const pointPath = this.getPath2DRect(x - 4, y - 4, 9, 9);
-          return this.isPointInClip(offsetX, offsetY, pointPath);
-        });
+        this.isPointMoving = true;
+        point = this.currentPoint || point;
         if (point) {
+          this.currentPoint = point;
           this.pointMove(point, offsetX, offsetY);
         }
       }
@@ -347,6 +355,12 @@ export default class ClipMask extends Vue {
 
   private handleMouseUp(e: any): void {
     this.moving = false;
+    this.isPointMoving = false;
+    this.currentPoint = null;
+    this.cacheClipWidth = this.clipWidth;
+    this.cacheClipHeight = this.clipHeight;
+    this.cacheTop = this.top;
+    this.cacheLeft = this.left;
   }
 
   private moveClip(offsetX: number, offsetY: number) {
@@ -385,18 +399,78 @@ export default class ClipMask extends Vue {
   }
   private pointMove(obj: any, offsetX: number, offsetY: number) {
     const { position } = obj;
-    console.log(position);
-    const pointMoveMap: {[key: string]: any} = {
+    const pointMoveMap: { [key: string]: any } = {
       topBottomRightMiddle: this.setClipWidth,
+      bottomLeftMiddle: this.setClipHeight,
+      bottomRight: this.setBottomRight,
+      topBottomLeftMiddle: this.setClipWidthLeft,
+      topLeftMiddle: this.setClipHeightTop,
+      topLeft: this.setClipTopLeft,
+      topRight: this.setClipTopRight,
+      bottomLeft: this.setClipBottomLeft,
     };
     pointMoveMap[position].call(this, offsetX, offsetY);
     this.setClipBorder();
   }
 
   private setClipWidth(offsetX: number, offsetY: number) {
-    const { startX, startY, offsetTop, offsetLeft } = this;
-    const offset = offsetX - startX + 1;
-    this.clipWidth = this.clipWidth + offset + 4;
+    const { startX, startY, offsetTop, offsetLeft, cacheClipWidth } = this;
+    const offset = offsetX - startX;
+    this.clipWidth = cacheClipWidth + offset;
+  }
+
+  private setClipHeight(offsetX: number, offsetY: number) {
+    const { startX, startY, offsetTop, offsetLeft, cacheClipHeight } = this;
+    const offset = offsetY - startY;
+    this.clipHeight = cacheClipHeight + offset;
+  }
+
+  private setBottomRight(offsetX: number, offsetY: number) {
+    this.setClipWidth(offsetX, offsetY);
+    this.setClipHeight(offsetX, offsetY);
+  }
+
+  private setClipWidthLeft(offsetX: number, offsetY: number) {
+    const {
+      startX,
+      startY,
+      offsetTop,
+      offsetLeft,
+      cacheClipWidth,
+      cacheLeft,
+    } = this;
+    const offset = offsetX - startX;
+    this.left = cacheLeft + offset;
+    this.clipWidth = cacheClipWidth - offset;
+  }
+
+  private setClipHeightTop(offsetX: number, offsetY: number) {
+    const {
+      startX,
+      startY,
+      offsetTop,
+      offsetLeft,
+      cacheClipHeight,
+      cacheTop,
+    } = this;
+    const offset = offsetY - startY;
+    this.clipHeight = cacheClipHeight - offset;
+    this.top = cacheTop + offset;
+  }
+
+  private setClipTopLeft(offsetX: number, offsetY: number) {
+    this.setClipWidthLeft(offsetX, offsetY);
+    this.setClipHeightTop(offsetX, offsetY);
+  }
+
+  private setClipTopRight(offsetX: number, offsetY: number) {
+    this.setClipWidth(offsetX, offsetY);
+    this.setClipHeightTop(offsetX, offsetY);
+  }
+
+  private setClipBottomLeft(offsetX: number, offsetY: number) {
+    this.setClipHeight(offsetX, offsetY);
+    this.setClipWidthLeft(offsetX, offsetY);
   }
 }
 </script>

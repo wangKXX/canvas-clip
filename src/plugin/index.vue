@@ -11,7 +11,7 @@
     </div>
     <div class="clip" ref="clip">
       <canvas ref="canvas"></canvas>
-      <clip-mask :width="imgWidth" :height="imgHeight" :initClipHeight="clipHeight" :initClipWidth="clipWidth" @widthHeightChange="widthHeightChange"/>
+      <clip-mask :width="imgWidth" :height="imgHeight" :initClipHeight="+clipHeight" :initClipWidth="+clipWidth" @widthHeightChange="widthHeightChange"/>
     </div>
     <img :src="previewImage" v-if="previewImage" class="priview"/>
   </div>
