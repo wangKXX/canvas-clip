@@ -18,41 +18,41 @@ export default class ClipMask extends Vue {
     maskCanvas: HTMLCanvasElement;
   };
 
-  @Prop() private width!: number; // 图片初始宽度
-  @Prop() private height!: number; // 图片初始高度
-  @Prop() private initClipWidth!: number; // 裁剪区初始宽度
-  @Prop() private initClipHeight!: number; // 裁剪区初始高度
+  @Prop() public width!: number; // 图片初始宽度
+  @Prop() public height!: number; // 图片初始高度
+  @Prop() public initClipWidth!: number; // 裁剪区初始宽度
+  @Prop() public initClipHeight!: number; // 裁剪区初始高度
 
-  private left: number = 1;
-  private top: number = 1;
-  private cacheTop: number = 1;
-  private cacheLeft: number = 1;
-  private startX!: number;
-  private startY!: number;
-  private offsetLeft!: number;
-  private offsetTop!: number;
-  private startPointX!: number;
-  private startPointY!: number;
-  private moving: boolean = false;
-  private clipHeight: number = 300;
-  private clipWidth: number = 300;
-  private cacheClipHeight: number = 300;
-  private cacheClipWidth: number = 300;
-  private timer!: any;
-  private selectPoint!: any;
-  private maskCanvasCtx!: any;
-  private offset: number = 0;
-  private maskCanvasData!: any;
-  private borderPath!: any;
-  private menuPoints!: object[];
-  private isPointMoving: boolean = false;
-  private currentPoint!: any;
+  public left: number = 1;
+  public top: number = 1;
+  public cacheTop: number = 1;
+  public cacheLeft: number = 1;
+  public startX!: number;
+  public startY!: number;
+  public offsetLeft!: number;
+  public offsetTop!: number;
+  public startPointX!: number;
+  public startPointY!: number;
+  public moving: boolean = false;
+  public clipHeight: number = 300;
+  public clipWidth: number = 300;
+  public cacheClipHeight: number = 300;
+  public cacheClipWidth: number = 300;
+  public timer!: any;
+  public selectPoint!: any;
+  public maskCanvasCtx!: any;
+  public offset: number = 0;
+  public maskCanvasData!: any;
+  public borderPath!: any;
+  public menuPoints!: object[];
+  public isPointMoving: boolean = false;
+  public currentPoint!: any;
 
   @Watch("clipHeight")
   @Watch("clipWidth")
   @Watch("top")
   @Watch("left")
-  private onWidthChange(value: any) {
+  public onWidthChange(value: any) {
     this.$emit("widthHeightChange", {
       width: this.clipWidth,
       height: this.clipHeight,
@@ -63,18 +63,30 @@ export default class ClipMask extends Vue {
 
   @Watch("width")
   @Watch("height")
-  private widthChange(value: any) {
+  public widthChange(value: any) {
     this.initMaskCanvas();
   }
 
   @Watch("initClipWidth")
   @Watch("initClipHeight")
-  private oninitChange(value: any) {
+  public oninitChange(value: any) {
     Object.assign(this, {
       clipHeight: this.initClipHeight || 300,
       clipWidth: this.initClipWidth || 300,
     });
     this.initMaskCanvas(true);
+  }
+
+  public isInMenuPart(offsetX: number, offsetY: number): boolean {
+    const { clipWidth, clipHeight, top, left } = this;
+    const path = this.getPath2DRect(left, top, clipWidth, clipHeight);
+    const { menuPoints } = this;
+    const point = menuPoints.find((obj: { [key: string]: any }) => {
+      const { x, y } = obj;
+      const pointPath = this.getPath2DRect(x - 4, y - 4, 9, 9);
+      return this.isPointInClip(offsetX, offsetY, pointPath);
+    });
+    return Boolean(this.isPointInClip(offsetX, offsetY, path) || point);
   }
 
   private created() {
@@ -87,6 +99,7 @@ export default class ClipMask extends Vue {
 
   private mounted() {
     this.initMaskCanvas();
+    this.$emit("sendSelf", this);
   }
 
   private destroyed() {

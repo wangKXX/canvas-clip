@@ -11,7 +11,7 @@
         <span class="txt btn" @click="handleClick">裁剪</span>
       </span>
     </div>
-    <div class="clip" ref="clip" @mousewheel="handleMouseWheel">
+    <div class="clip" ref="clip" @mousewheel="handleMouseWheel" @mousedown.stop="handleMouseDown" @mousemove.stop="handleMouseMove" @mouseup.stop="handleMouseUp">
       <canvas ref="canvas"></canvas>
       <clip-mask
         :width="imgWidth"
@@ -19,6 +19,8 @@
         :initClipHeight="+clipHeight"
         :initClipWidth="+clipWidth"
         @widthHeightChange="widthHeightChange"
+        @sendSelf="getChild"
+        ref="clip"
       />
     </div>
     <img :src="previewImage" v-if="previewImage" class="priview" />
@@ -37,6 +39,7 @@ import clipMask from "./mask.vue";
 export default class Clip extends Vue {
   public $refs!: {
     canvas: HTMLCanvasElement;
+    clip: any;
   };
 
   public imgWidth: number = 0;
@@ -51,6 +54,11 @@ export default class Clip extends Vue {
   public left: number = 0;
   public img!: any;
   public scaleNumber: number = 1;
+  public isImgCanMove: boolean = false;
+  public startX!: number;
+  public startY!: number;
+  public isMoving: boolean = false;
+  public clip!: any;
 
   @Prop() public src!: string;
   @Prop({ default: 500 }) public height!: number;
@@ -60,12 +68,13 @@ export default class Clip extends Vue {
     const { imgWidth, imgHeight } = this;
     this.canvasCtx.clearRect(-1, -1, imgWidth + 4, imgHeight + 4);
     this.canvasCtx.translate(imgWidth / 2, imgHeight / 2);
-    this.canvasCtx.rotate(+value * Math.PI / 180);
+    this.canvasCtx.rotate(value * (Math.PI / 180));
     this.canvasCtx.translate(-(imgWidth / 2), -(imgHeight / 2));
     this.drawImageToCanvas(this.img);
-    if (!value) {
-      this.resetRotate();
-    }
+  }
+
+  private getChild(clip: any) {
+    this.clip = clip;
   }
 
   private resetRotate() {
@@ -96,6 +105,7 @@ export default class Clip extends Vue {
     if (wheelDelta > 0) {
       // 放大
       this.scaleNumber = scaleNumber + 1;
+      this.isImgCanMove = this.scaleNumber > 1;
     } else {
       this.scaleNumber = scaleNumber - 1;
     }
@@ -164,6 +174,35 @@ export default class Clip extends Vue {
       top,
       left,
     });
+  }
+
+  private handleMouseDown(e: MouseEvent) {
+    const { offsetX, offsetY } = e;
+    this.startX = offsetX;
+    this.startY = offsetY;
+    this.isMoving = true;
+  }
+
+  private handleMouseMove(e: MouseEvent) {
+    const { isImgCanMove, startX, startY, imgWidth, imgHeight, isMoving } = this;
+    const { offsetX, offsetY } = e;
+    if (isImgCanMove && isMoving) {
+      const isInMenu = this.clip.isInMenuPart(offsetX, offsetY);
+      if (isInMenu) {
+        return false;
+      }
+      const offsetW = offsetX - startX;
+      const offsetH = offsetY - startY;
+      this.canvasCtx.clearRect(-1, -1, imgWidth + 4, imgHeight + 4);
+      this.canvasCtx.translate(offsetW, offsetH);
+      this.drawImageToCanvas(this.img);
+      this.startX = offsetX;
+      this.startY = offsetY;
+    }
+  }
+
+  private handleMouseUp(e: MouseEvent) {
+    this.isMoving = false;
   }
 }
 </script>
