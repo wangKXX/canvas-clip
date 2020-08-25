@@ -2,23 +2,31 @@
   <div class="clip-wrap">
     <div class="clip-menu">
       <span class="show-part">
-        <span class="txt">宽度：</span><input v-model="clipWidth"/>
-        <span class="txt">高度：</span><input v-model="clipHeight"/>
+        <span class="txt">宽度：</span><input v-model="clipWidth" />
+        <span class="txt">高度：</span><input v-model="clipHeight" />
+        <span class="txt">旋转：</span
+        ><input v-model="transform" type="range" min="0" max="180" step="1"/>
       </span>
       <span>
         <span class="txt btn" @click="handleClick">裁剪</span>
       </span>
     </div>
-    <div class="clip" ref="clip">
+    <div class="clip" ref="clip" @mousewheel="handleMouseWheel">
       <canvas ref="canvas"></canvas>
-      <clip-mask :width="imgWidth" :height="imgHeight" :initClipHeight="+clipHeight" :initClipWidth="+clipWidth" @widthHeightChange="widthHeightChange"/>
+      <clip-mask
+        :width="imgWidth"
+        :height="imgHeight"
+        :initClipHeight="+clipHeight"
+        :initClipWidth="+clipWidth"
+        @widthHeightChange="widthHeightChange"
+      />
     </div>
-    <img :src="previewImage" v-if="previewImage" class="priview"/>
+    <img :src="previewImage" v-if="previewImage" class="priview" />
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import clipMask from "./mask.vue";
 
 @Component({
@@ -28,33 +36,79 @@ import clipMask from "./mask.vue";
 })
 export default class Clip extends Vue {
   public $refs!: {
-    canvas: HTMLCanvasElement,
+    canvas: HTMLCanvasElement;
   };
 
-  @Prop() private src!: string;
-  @Prop({ default: 500 }) private height!: number;
+  public imgWidth: number = 0;
+  public imgHeight: number = 0;
+  public canvasCtx!: any;
+  public imageType!: string;
+  public previewImage: any = "";
+  public clipHeight: number = 200;
+  public clipWidth: number = 200;
+  public transform: number = 0;
+  public top: number = 0;
+  public left: number = 0;
+  public img!: any;
+  public scaleNumber: number = 1;
 
-  private imgWidth: number = 0;
-  private imgHeight: number = 0;
-  private canvasCtx!: any;
-  private imageType!: string;
-  private previewImage: any = "";
-  private clipHeight: number = 200;
-  private clipWidth: number = 200;
-  private top: number = 0;
-  private left: number = 0;
+  @Prop() public src!: string;
+  @Prop({ default: 500 }) public height!: number;
 
-  public created() {
-    const img = new Image();
-    img.onload = (e: any) => {
+  @Watch("transform")
+  private transformChange(value: number) {
+    const { imgWidth, imgHeight } = this;
+    this.canvasCtx.clearRect(-1, -1, imgWidth + 4, imgHeight + 4);
+    this.canvasCtx.translate(imgWidth / 2, imgHeight / 2);
+    this.canvasCtx.rotate(+value * Math.PI / 180);
+    this.canvasCtx.translate(-(imgWidth / 2), -(imgHeight / 2));
+    this.drawImageToCanvas(this.img);
+    if (!value) {
+      this.resetRotate();
+    }
+  }
+
+  private resetRotate() {
+    const { imgWidth, imgHeight } = this;
+    this.canvasCtx.translate(imgWidth / 2, imgHeight / 2);
+    this.canvasCtx.rotate(0);
+    this.canvasCtx.translate(-(imgWidth / 2), -(imgHeight / 2));
+    this.drawImageToCanvas(this.img);
+  }
+
+  private created() {
+    this.img = new Image();
+    this.img.onload = (e: any) => {
       const { width, height, type } = e.target;
       this.imageType = type;
       const scale: any = this.scale(width, height);
       this.setCanvasWH(scale);
       // this.initCanvasCtx();
-      this.drawImageToCanvas(img);
+      this.drawImageToCanvas(this.img);
     };
-    img.src = this.src;
+    this.img.src = this.src;
+  }
+
+  private handleMouseWheel(e: any) {
+    const { wheelDelta } = e;
+    const { imgWidth, imgHeight, scaleNumber } = this;
+    this.canvasCtx.clearRect(0, 0, imgWidth + 4, imgHeight + 4);
+    if (wheelDelta > 0) {
+      // 放大
+      this.scaleNumber = scaleNumber + 1;
+    } else {
+      this.scaleNumber = scaleNumber - 1;
+    }
+    const scale = 1 + this.scaleNumber / 10;
+    this.canvasCtx.setTransform(
+      scale,
+      0,
+      0,
+      scale,
+      (imgWidth - imgWidth * scale) / 2,
+      (imgHeight - imgHeight * scale) / 2,
+    );
+    this.drawImageToCanvas(this.img);
   }
 
   private setCanvasWH(scale: any) {
@@ -76,7 +130,6 @@ export default class Clip extends Vue {
     this.canvasCtx.drawImage(img, 0, 0, imgWidth, imgHeight);
   }
 
-
   private scale(w: number, h: number): object {
     const { height = 500 } = this;
     const sWidth = (w * height) / h;
@@ -88,7 +141,12 @@ export default class Clip extends Vue {
     this.clipCanvasToImage(left, top, clipWidth, clipHeight);
   }
 
-  private clipCanvasToImage(x: number, y: number, width: number, height: number): void {
+  private clipCanvasToImage(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ): void {
     const imageData = this.canvasCtx.getImageData(x, y, width, height);
     const tempCanvas = document.createElement("canvas");
     tempCanvas.width = width;

@@ -116,7 +116,7 @@ export default class ClipMask extends Vue {
     const { width, height } = this;
     this.maskCanvasCtx.clearRect(0, 0, width, height);
     this.maskCanvasCtx.fillStyle = "rgba(255, 255, 255, .6)";
-    this.maskCanvasCtx.fillRect(0, 0, width, width);
+    this.maskCanvasCtx.fillRect(0, 0, width, height);
   }
 
   private setClipBorder() {
