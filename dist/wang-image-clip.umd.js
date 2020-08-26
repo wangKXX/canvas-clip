@@ -3020,12 +3020,12 @@ if (typeof window !== 'undefined') {
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__("8bbf");
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5541d30f-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/index.vue?vue&type=template&id=2569ef20&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"clip-wrap"},[_c('div',{staticClass:"clip-menu"},[_c('span',{staticClass:"show-part"},[_c('span',{staticClass:"txt"},[_vm._v("宽度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.clipWidth),expression:"clipWidth"}],domProps:{"value":(_vm.clipWidth)},on:{"input":function($event){if($event.target.composing){ return; }_vm.clipWidth=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("高度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.clipHeight),expression:"clipHeight"}],domProps:{"value":(_vm.clipHeight)},on:{"input":function($event){if($event.target.composing){ return; }_vm.clipHeight=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("旋转：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.transform),expression:"transform"}],attrs:{"type":"range","min":"0","max":"180","step":"1"},domProps:{"value":(_vm.transform)},on:{"__r":function($event){_vm.transform=$event.target.value}}})]),_c('span',[_c('span',{staticClass:"txt btn",on:{"click":_vm.handleClick}},[_vm._v("裁剪")])])]),_c('div',{ref:"clip",staticClass:"clip",on:{"mousewheel":_vm.handleMouseWheel,"mousedown":function($event){$event.stopPropagation();return _vm.handleMouseDown($event)},"mousemove":function($event){$event.stopPropagation();return _vm.handleMouseMove($event)},"mouseup":function($event){$event.stopPropagation();return _vm.handleMouseUp($event)}}},[_c('canvas',{ref:"canvas"}),_c('clip-mask',{ref:"clip",attrs:{"width":_vm.imgWidth,"height":_vm.imgHeight,"initClipHeight":+_vm.clipHeight,"initClipWidth":+_vm.clipWidth},on:{"widthHeightChange":_vm.widthHeightChange,"sendSelf":_vm.getChild}})],1),(_vm.previewImage)?_c('img',{staticClass:"priview",attrs:{"src":_vm.previewImage}}):_vm._e()])}
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5541d30f-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/index.vue?vue&type=template&id=208b5131&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"clip-wrap"},[_c('div',{staticClass:"clip-menu"},[_c('span',{staticClass:"show-part"},[_c('span',{staticClass:"txt"},[_vm._v("宽度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.maskClipWidth),expression:"maskClipWidth"}],domProps:{"value":(_vm.maskClipWidth)},on:{"input":function($event){if($event.target.composing){ return; }_vm.maskClipWidth=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("高度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.maskClipHeight),expression:"maskClipHeight"}],domProps:{"value":(_vm.maskClipHeight)},on:{"input":function($event){if($event.target.composing){ return; }_vm.maskClipHeight=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("旋转：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.transform),expression:"transform"}],attrs:{"type":"range","min":"0","max":"180","step":"1"},domProps:{"value":(_vm.transform)},on:{"__r":function($event){_vm.transform=$event.target.value}}})]),_c('span',[_c('span',{staticClass:"txt btn",on:{"click":_vm.handleClick}},[_vm._v("裁剪")])])]),_c('div',{ref:"clip",staticClass:"clip",on:{"mousewheel":_vm.handleMouseWheel,"mousedown":function($event){$event.stopPropagation();return _vm.handleMouseDown($event)},"mousemove":function($event){$event.stopPropagation();return _vm.handleMouseMove($event)},"mouseup":function($event){$event.stopPropagation();return _vm.handleMouseUp($event)}}},[_c('canvas',{ref:"canvas"}),_c('clip-mask',{ref:"clip",attrs:{"width":_vm.imgWidth,"height":_vm.imgHeight,"initClipHeight":+_vm.clipHeight,"initClipWidth":+_vm.clipWidth},on:{"widthHeightChange":_vm.widthHeightChange,"sendSelf":_vm.getChild}})],1),(_vm.previewImage)?_c('img',{staticClass:"priview",attrs:{"src":_vm.previewImage}}):_vm._e()])}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/plugin/index.vue?vue&type=template&id=2569ef20&
+// CONCATENATED MODULE: ./src/plugin/index.vue?vue&type=template&id=208b5131&
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
 var es_object_assign = __webpack_require__("cca6");
@@ -4760,8 +4760,8 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
     _this.imgWidth = 0;
     _this.imgHeight = 0;
     _this.previewImage = "";
-    _this.clipHeight = 200;
-    _this.clipWidth = 200;
+    _this.maskClipHeight = 200;
+    _this.maskClipWidth = 200;
     _this.transform = 0;
     _this.top = 0;
     _this.left = 0;
@@ -4881,9 +4881,9 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
     value: function handleClick() {
       var left = this.left,
           top = this.top,
-          clipWidth = this.clipWidth,
-          clipHeight = this.clipHeight;
-      this.clipCanvasToImage(left, top, clipWidth, clipHeight);
+          maskClipWidth = this.maskClipWidth,
+          maskClipHeight = this.maskClipHeight;
+      this.clipCanvasToImage(left, top, maskClipWidth, maskClipHeight);
     }
   }, {
     key: "clipCanvasToImage",
@@ -4904,8 +4904,8 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
           top = obj.top,
           left = obj.left;
       Object.assign(this, {
-        clipWidth: width,
-        clipHeight: height,
+        maskClipWidth: width,
+        maskClipHeight: height,
         top: top,
         left: left
       });
@@ -4962,6 +4962,14 @@ __decorate([Prop()], pluginvue_type_script_lang_ts_Clip.prototype, "src", void 0
 __decorate([Prop({
   default: 500
 })], pluginvue_type_script_lang_ts_Clip.prototype, "height", void 0);
+
+__decorate([Prop({
+  default: 200
+})], pluginvue_type_script_lang_ts_Clip.prototype, "clipHeight", void 0);
+
+__decorate([Prop({
+  default: 200
+})], pluginvue_type_script_lang_ts_Clip.prototype, "clipWidth", void 0);
 
 __decorate([Watch("transform")], pluginvue_type_script_lang_ts_Clip.prototype, "transformChange", null);
 
