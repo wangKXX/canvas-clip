@@ -2235,6 +2235,13 @@ module.exports = TO_STRING_TAG_SUPPORT ? {}.toString : function toString() {
 
 /***/ }),
 
+/***/ "b1a7":
+/***/ (function(module, exports, __webpack_require__) {
+
+// extracted by mini-css-extract-plugin
+
+/***/ }),
+
 /***/ "b622":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -4977,7 +4984,11 @@ var plugin_component = normalizeComponent(
 )
 
 /* harmony default export */ var src_plugin = (plugin_component.exports);
+// EXTERNAL MODULE: ./src/sheet/clip.scss
+var clip = __webpack_require__("b1a7");
+
 // CONCATENATED MODULE: ./src/plugin/index.js
+
 
 
 external_commonjs_vue_commonjs2_vue_root_Vue_default.a.component({
