@@ -2,8 +2,8 @@
   <div class="clip-wrap">
     <div class="clip-menu">
       <span class="show-part">
-        <span class="txt">宽度：</span><input v-model="clipWidth" />
-        <span class="txt">高度：</span><input v-model="clipHeight" />
+        <span class="txt">宽度：</span><input v-model="maskClipWidth" />
+        <span class="txt">高度：</span><input v-model="maskClipHeight" />
         <span class="txt">旋转：</span
         ><input v-model="transform" type="range" min="0" max="180" step="1"/>
       </span>
@@ -47,8 +47,8 @@ export default class Clip extends Vue {
   public canvasCtx!: any;
   public imageType!: string;
   public previewImage: any = "";
-  public clipHeight: number = 200;
-  public clipWidth: number = 200;
+  public maskClipHeight: number = 200;
+  public maskClipWidth: number = 200;
   public transform: number = 0;
   public top: number = 0;
   public left: number = 0;
@@ -62,6 +62,8 @@ export default class Clip extends Vue {
 
   @Prop() public src!: string;
   @Prop({ default: 500 }) public height!: number;
+  @Prop({ default: 200 }) public clipHeight!: number;
+  @Prop({ default: 200 }) public clipWidth!: number;
 
   @Watch("transform")
   private transformChange(value: number) {
@@ -147,8 +149,8 @@ export default class Clip extends Vue {
   }
 
   private handleClick(): void {
-    const { left, top, clipWidth, clipHeight } = this;
-    this.clipCanvasToImage(left, top, clipWidth, clipHeight);
+    const { left, top, maskClipWidth, maskClipHeight } = this;
+    this.clipCanvasToImage(left, top, maskClipWidth, maskClipHeight);
   }
 
   private clipCanvasToImage(
@@ -169,8 +171,8 @@ export default class Clip extends Vue {
   private widthHeightChange(obj: any) {
     const { width, height, top, left } = obj;
     Object.assign(this, {
-      clipWidth: width,
-      clipHeight: height,
+      maskClipWidth: width,
+      maskClipHeight: height,
       top,
       left,
     });

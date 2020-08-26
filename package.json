@@ -16,8 +16,8 @@
     "*.js"
   ],
   "repository": {
-        "type": "git",
-        "url": "git+https://github.com/wangKXX/canvas-clip.git"
+    "type": "git",
+    "url": "git+https://github.com/wangKXX/canvas-clip.git"
   },
   "dependencies": {
     "core-js": "^3.6.5",

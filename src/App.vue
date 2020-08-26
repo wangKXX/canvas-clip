@@ -2,6 +2,9 @@
   <div id="app">
     <clip
       :src="src"
+      :clipHeight="100"
+      :clipWidth="100"
+      :height="400"
     />
   </div>
 </template>
