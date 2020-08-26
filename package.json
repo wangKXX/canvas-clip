@@ -15,6 +15,10 @@
     "*.json",
     "*.js"
   ],
+  "repository": {
+        "type": "git",
+        "url": "git+https://github.com/wangKXX/canvas-clip.git"
+  },
   "dependencies": {
     "core-js": "^3.6.5",
     "vue": "^2.6.11",
