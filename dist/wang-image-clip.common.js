@@ -306,6 +306,51 @@ module.exports = function (it) {
 
 /***/ }),
 
+/***/ "1c7e":
+/***/ (function(module, exports, __webpack_require__) {
+
+var wellKnownSymbol = __webpack_require__("b622");
+
+var ITERATOR = wellKnownSymbol('iterator');
+var SAFE_CLOSING = false;
+
+try {
+  var called = 0;
+  var iteratorWithReturn = {
+    next: function () {
+      return { done: !!called++ };
+    },
+    'return': function () {
+      SAFE_CLOSING = true;
+    }
+  };
+  iteratorWithReturn[ITERATOR] = function () {
+    return this;
+  };
+  // eslint-disable-next-line no-throw-literal
+  Array.from(iteratorWithReturn, function () { throw 2; });
+} catch (error) { /* empty */ }
+
+module.exports = function (exec, SKIP_CLOSING) {
+  if (!SKIP_CLOSING && !SAFE_CLOSING) return false;
+  var ITERATION_SUPPORT = false;
+  try {
+    var object = {};
+    object[ITERATOR] = function () {
+      return {
+        next: function () {
+          return { done: ITERATION_SUPPORT = true };
+        }
+      };
+    };
+    exec(object);
+  } catch (error) { /* empty */ }
+  return ITERATION_SUPPORT;
+};
+
+
+/***/ }),
+
 /***/ "1d80":
 /***/ (function(module, exports) {
 
@@ -531,6 +576,24 @@ $({ target: 'Object', stat: true, forced: FAILS_ON_PRIMITIVES, sham: !CORRECT_PR
 var getBuiltIn = __webpack_require__("d066");
 
 module.exports = getBuiltIn('navigator', 'userAgent') || '';
+
+
+/***/ }),
+
+/***/ "35a1":
+/***/ (function(module, exports, __webpack_require__) {
+
+var classof = __webpack_require__("f5df");
+var Iterators = __webpack_require__("3f8c");
+var wellKnownSymbol = __webpack_require__("b622");
+
+var ITERATOR = wellKnownSymbol('iterator');
+
+module.exports = function (it) {
+  if (it != undefined) return it[ITERATOR]
+    || it['@@iterator']
+    || Iterators[classof(it)];
+};
 
 
 /***/ }),
@@ -797,6 +860,55 @@ module.exports = {
   // `Array.prototype.indexOf` method
   // https://tc39.github.io/ecma262/#sec-array.prototype.indexof
   indexOf: createMethod(false)
+};
+
+
+/***/ }),
+
+/***/ "4df4":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var bind = __webpack_require__("0366");
+var toObject = __webpack_require__("7b0b");
+var callWithSafeIterationClosing = __webpack_require__("9bdd");
+var isArrayIteratorMethod = __webpack_require__("e95a");
+var toLength = __webpack_require__("50c4");
+var createProperty = __webpack_require__("8418");
+var getIteratorMethod = __webpack_require__("35a1");
+
+// `Array.from` method implementation
+// https://tc39.github.io/ecma262/#sec-array.from
+module.exports = function from(arrayLike /* , mapfn = undefined, thisArg = undefined */) {
+  var O = toObject(arrayLike);
+  var C = typeof this == 'function' ? this : Array;
+  var argumentsLength = arguments.length;
+  var mapfn = argumentsLength > 1 ? arguments[1] : undefined;
+  var mapping = mapfn !== undefined;
+  var iteratorMethod = getIteratorMethod(O);
+  var index = 0;
+  var length, result, step, iterator, next, value;
+  if (mapping) mapfn = bind(mapfn, argumentsLength > 2 ? arguments[2] : undefined, 2);
+  // if the target is not iterable or it's an array with the default iterator - use a simple case
+  if (iteratorMethod != undefined && !(C == Array && isArrayIteratorMethod(iteratorMethod))) {
+    iterator = iteratorMethod.call(O);
+    next = iterator.next;
+    result = new C();
+    for (;!(step = next.call(iterator)).done; index++) {
+      value = mapping ? callWithSafeIterationClosing(iterator, mapfn, [step.value, index], true) : step.value;
+      createProperty(result, index, value);
+    }
+  } else {
+    length = toLength(O.length);
+    result = new C(length);
+    for (;length > index; index++) {
+      value = mapping ? mapfn(O[index], index) : O[index];
+      createProperty(result, index, value);
+    }
+  }
+  result.length = index;
+  return result;
 };
 
 
@@ -1712,6 +1824,26 @@ $({ target: 'Array', proto: true, forced: FORCED }, {
 
 /***/ }),
 
+/***/ "9bdd":
+/***/ (function(module, exports, __webpack_require__) {
+
+var anObject = __webpack_require__("825a");
+
+// call something on iterator step with safe closing on error
+module.exports = function (iterator, fn, value, ENTRIES) {
+  try {
+    return ENTRIES ? fn(anObject(value)[0], value[1]) : fn(value);
+  // 7.4.6 IteratorClose(iterator, completion)
+  } catch (error) {
+    var returnMethod = iterator['return'];
+    if (returnMethod !== undefined) anObject(returnMethod.call(iterator));
+    throw error;
+  }
+};
+
+
+/***/ }),
+
 /***/ "9bf2":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2082,6 +2214,26 @@ hiddenKeys[HIDDEN] = true;
 
 /***/ }),
 
+/***/ "a630":
+/***/ (function(module, exports, __webpack_require__) {
+
+var $ = __webpack_require__("23e7");
+var from = __webpack_require__("4df4");
+var checkCorrectnessOfIteration = __webpack_require__("1c7e");
+
+var INCORRECT_ITERATION = !checkCorrectnessOfIteration(function (iterable) {
+  Array.from(iterable);
+});
+
+// `Array.from` method
+// https://tc39.github.io/ecma262/#sec-array.from
+$({ target: 'Array', stat: true, forced: INCORRECT_ITERATION }, {
+  from: from
+});
+
+
+/***/ }),
+
 /***/ "a640":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -2231,6 +2383,35 @@ var classof = __webpack_require__("f5df");
 module.exports = TO_STRING_TAG_SUPPORT ? {}.toString : function toString() {
   return '[object ' + classof(this) + ']';
 };
+
+
+/***/ }),
+
+/***/ "b0c0":
+/***/ (function(module, exports, __webpack_require__) {
+
+var DESCRIPTORS = __webpack_require__("83ab");
+var defineProperty = __webpack_require__("9bf2").f;
+
+var FunctionPrototype = Function.prototype;
+var FunctionPrototypeToString = FunctionPrototype.toString;
+var nameRE = /^\s*function ([^ (]*)/;
+var NAME = 'name';
+
+// Function instances `.name` property
+// https://tc39.github.io/ecma262/#sec-function-instances-name
+if (DESCRIPTORS && !(NAME in FunctionPrototype)) {
+  defineProperty(FunctionPrototype, NAME, {
+    configurable: true,
+    get: function () {
+      try {
+        return FunctionPrototypeToString.call(this).match(nameRE)[1];
+      } catch (error) {
+        return '';
+      }
+    }
+  });
+}
 
 
 /***/ }),
@@ -2928,6 +3109,23 @@ module.exports = Array.isArray || function isArray(arg) {
 
 /***/ }),
 
+/***/ "e95a":
+/***/ (function(module, exports, __webpack_require__) {
+
+var wellKnownSymbol = __webpack_require__("b622");
+var Iterators = __webpack_require__("3f8c");
+
+var ITERATOR = wellKnownSymbol('iterator');
+var ArrayPrototype = Array.prototype;
+
+// check on default Array iterator
+module.exports = function (it) {
+  return it !== undefined && (Iterators.Array === it || ArrayPrototype[ITERATOR] === it);
+};
+
+
+/***/ }),
+
 /***/ "f5df":
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -3011,16 +3209,125 @@ if (typeof window !== 'undefined') {
 var external_commonjs_vue_commonjs2_vue_root_Vue_ = __webpack_require__("8bbf");
 var external_commonjs_vue_commonjs2_vue_root_Vue_default = /*#__PURE__*/__webpack_require__.n(external_commonjs_vue_commonjs2_vue_root_Vue_);
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5541d30f-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/index.vue?vue&type=template&id=208b5131&
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"clip-wrap"},[_c('div',{staticClass:"clip-menu"},[_c('span',{staticClass:"show-part"},[_c('span',{staticClass:"txt"},[_vm._v("宽度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.maskClipWidth),expression:"maskClipWidth"}],domProps:{"value":(_vm.maskClipWidth)},on:{"input":function($event){if($event.target.composing){ return; }_vm.maskClipWidth=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("高度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.maskClipHeight),expression:"maskClipHeight"}],domProps:{"value":(_vm.maskClipHeight)},on:{"input":function($event){if($event.target.composing){ return; }_vm.maskClipHeight=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("旋转：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.transform),expression:"transform"}],attrs:{"type":"range","min":"0","max":"180","step":"1"},domProps:{"value":(_vm.transform)},on:{"__r":function($event){_vm.transform=$event.target.value}}})]),_c('span',[_c('span',{staticClass:"txt btn",on:{"click":_vm.handleClick}},[_vm._v("裁剪")])])]),_c('div',{ref:"clip",staticClass:"clip",on:{"mousewheel":_vm.handleMouseWheel,"mousedown":function($event){$event.stopPropagation();return _vm.handleMouseDown($event)},"mousemove":function($event){$event.stopPropagation();return _vm.handleMouseMove($event)},"mouseup":function($event){$event.stopPropagation();return _vm.handleMouseUp($event)}}},[_c('canvas',{ref:"canvas"}),_c('clip-mask',{ref:"clip",attrs:{"width":_vm.imgWidth,"height":_vm.imgHeight,"initClipHeight":+_vm.clipHeight,"initClipWidth":+_vm.clipWidth},on:{"widthHeightChange":_vm.widthHeightChange,"sendSelf":_vm.getChild}})],1),(_vm.previewImage)?_c('img',{staticClass:"priview",attrs:{"src":_vm.previewImage}}):_vm._e()])}
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5541d30f-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/index.vue?vue&type=template&id=31610df0&
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"clip-wrap"},[_c('div',{staticClass:"clip-menu"},[(_vm.showControls)?_c('span',{staticClass:"show-part"},[_c('span',{staticClass:"txt"},[_vm._v("宽度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.maskClipWidth),expression:"maskClipWidth"}],domProps:{"value":(_vm.maskClipWidth)},on:{"input":function($event){if($event.target.composing){ return; }_vm.maskClipWidth=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("高度：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.maskClipHeight),expression:"maskClipHeight"}],domProps:{"value":(_vm.maskClipHeight)},on:{"input":function($event){if($event.target.composing){ return; }_vm.maskClipHeight=$event.target.value}}}),_c('span',{staticClass:"txt"},[_vm._v("旋转：")]),_c('input',{directives:[{name:"model",rawName:"v-model",value:(_vm.transform),expression:"transform"}],attrs:{"type":"range","min":"0","max":"180","step":"1"},domProps:{"value":(_vm.transform)},on:{"__r":function($event){_vm.transform=$event.target.value}}})]):_vm._e(),_c('span',[_c('span',{staticClass:"txt btn",on:{"click":_vm.handleClick}},[_vm._v("裁剪")])])]),_c('div',{ref:"clip",staticClass:"clip",on:{"mousewheel":_vm.handleMouseWheel,"mousedown":function($event){$event.stopPropagation();return _vm.handleMouseDown($event)},"mousemove":function($event){$event.stopPropagation();return _vm.handleMouseMove($event)},"mouseup":function($event){$event.stopPropagation();return _vm.handleMouseUp($event)},"drop":function($event){$event.stopPropagation();$event.preventDefault();return _vm.dropImage($event)},"dragleave":function($event){$event.stopPropagation();$event.preventDefault();},"dragover":function($event){$event.stopPropagation();$event.preventDefault();},"dragenter":function($event){$event.stopPropagation();$event.preventDefault();},"dragend":function($event){$event.stopPropagation();$event.preventDefault();},"dragstart":function($event){$event.stopPropagation();$event.preventDefault();}}},[_c('canvas',{ref:"canvas"}),_c('clip-mask',{ref:"clip",attrs:{"width":_vm.imgWidth,"height":_vm.imgHeight,"initClipHeight":+_vm.clipHeight,"initClipWidth":+_vm.clipWidth},on:{"widthHeightChange":_vm.widthHeightChange,"sendSelf":_vm.getChild}})],1),(_vm.previewImage && _vm.showPreview)?_c('div',{staticClass:"resoult-part"},[_c('img',{staticClass:"priview",attrs:{"src":_vm.previewImage}}),_c('a',{attrs:{"href":_vm.previewImage,"download":_vm.imageName}},[_vm._v("下载")])]):_vm._e()])}
 var staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/plugin/index.vue?vue&type=template&id=208b5131&
+// CONCATENATED MODULE: ./src/plugin/index.vue?vue&type=template&id=31610df0&
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.function.name.js
+var es_function_name = __webpack_require__("b0c0");
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.assign.js
 var es_object_assign = __webpack_require__("cca6");
 
+// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayWithHoles.js
+function _arrayWithHoles(arr) {
+  if (Array.isArray(arr)) return arr;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.js
+var es_symbol = __webpack_require__("a4d3");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.description.js
+var es_symbol_description = __webpack_require__("e01a");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.iterator.js
+var es_symbol_iterator = __webpack_require__("d28b");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.iterator.js
+var es_array_iterator = __webpack_require__("e260");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.to-string.js
+var es_object_to_string = __webpack_require__("d3b7");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.iterator.js
+var es_string_iterator = __webpack_require__("3ca3");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-collections.iterator.js
+var web_dom_collections_iterator = __webpack_require__("ddb0");
+
+// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/iterableToArrayLimit.js
+
+
+
+
+
+
+
+function _iterableToArrayLimit(arr, i) {
+  if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return;
+  var _arr = [];
+  var _n = true;
+  var _d = false;
+  var _e = undefined;
+
+  try {
+    for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+      _arr.push(_s.value);
+
+      if (i && _arr.length === i) break;
+    }
+  } catch (err) {
+    _d = true;
+    _e = err;
+  } finally {
+    try {
+      if (!_n && _i["return"] != null) _i["return"]();
+    } finally {
+      if (_d) throw _e;
+    }
+  }
+
+  return _arr;
+}
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.from.js
+var es_array_from = __webpack_require__("a630");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.slice.js
+var es_array_slice = __webpack_require__("fb6a");
+
+// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
+var es_regexp_to_string = __webpack_require__("25f0");
+
+// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/arrayLikeToArray.js
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+
+  for (var i = 0, arr2 = new Array(len); i < len; i++) {
+    arr2[i] = arr[i];
+  }
+
+  return arr2;
+}
+// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/unsupportedIterableToArray.js
+
+
+
+
+
+
+
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/nonIterableRest.js
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+// CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/slicedToArray.js
+
+
+
+
+function _slicedToArray(arr, i) {
+  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
+}
 // CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/classCallCheck.js
 function _classCallCheck(instance, Constructor) {
   if (!(instance instanceof Constructor)) {
@@ -3082,12 +3389,6 @@ function _getPrototypeOf(o) {
   };
   return _getPrototypeOf(o);
 }
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.object.to-string.js
-var es_object_to_string = __webpack_require__("d3b7");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.regexp.to-string.js
-var es_regexp_to_string = __webpack_require__("25f0");
-
 // CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/isNativeReflectConstruct.js
 
 
@@ -3104,24 +3405,6 @@ function _isNativeReflectConstruct() {
     return false;
   }
 }
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.js
-var es_symbol = __webpack_require__("a4d3");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.description.js
-var es_symbol_description = __webpack_require__("e01a");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.symbol.iterator.js
-var es_symbol_iterator = __webpack_require__("d28b");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.iterator.js
-var es_array_iterator = __webpack_require__("e260");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/es.string.iterator.js
-var es_string_iterator = __webpack_require__("3ca3");
-
-// EXTERNAL MODULE: ./node_modules/core-js/modules/web.dom-collections.iterator.js
-var web_dom_collections_iterator = __webpack_require__("ddb0");
-
 // CONCATENATED MODULE: ./node_modules/@babel/runtime/helpers/esm/typeof.js
 
 
@@ -4002,12 +4285,12 @@ function isPromise(obj) {
     return obj instanceof Promise || (obj && typeof obj.then === 'function');
 }
 
-// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5541d30f-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/mask.vue?vue&type=template&id=1e5a53e2&
-var maskvue_type_template_id_1e5a53e2_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('canvas',{ref:"maskCanvas",staticClass:"mask-canvas",on:{"mousedown":_vm.handleMouseDown,"mouseup":_vm.handleMouseUp,"mousemove":_vm.handleMouseMove}})}
-var maskvue_type_template_id_1e5a53e2_staticRenderFns = []
+// CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js?{"cacheDirectory":"node_modules/.cache/vue-loader","cacheIdentifier":"5541d30f-vue-loader-template"}!./node_modules/vue-loader/lib/loaders/templateLoader.js??vue-loader-options!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/mask.vue?vue&type=template&id=77307938&
+var maskvue_type_template_id_77307938_render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('canvas',{ref:"maskCanvas",staticClass:"mask-canvas",on:{"mousedown":_vm.handleMouseDown,"mouseup":_vm.handleMouseUp,"mousemove":_vm.handleMouseMove}})}
+var maskvue_type_template_id_77307938_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/plugin/mask.vue?vue&type=template&id=1e5a53e2&
+// CONCATENATED MODULE: ./src/plugin/mask.vue?vue&type=template&id=77307938&
 
 // EXTERNAL MODULE: ./node_modules/core-js/modules/es.array.concat.js
 var es_array_concat = __webpack_require__("99af");
@@ -4160,12 +4443,12 @@ var maskvue_type_script_lang_ts_ClipMask = /*#__PURE__*/function (_Vue) {
       var width = this.width,
           height = this.height;
       this.maskCanvasCtx.clearRect(0, 0, width, height);
-      this.maskCanvasCtx.fillStyle = "rgba(255, 255, 255, .6)";
+      this.maskCanvasCtx.fillStyle = "rgba(0, 0, 0, .4)";
       this.maskCanvasCtx.fillRect(0, 0, width, height);
     }
   }, {
     key: "setClipBorder",
-    value: function setClipBorder() {
+    value: function setClipBorder(position) {
       var clipWidth = this.clipWidth,
           clipHeight = this.clipHeight,
           top = this.top,
@@ -4177,21 +4460,21 @@ var maskvue_type_script_lang_ts_ClipMask = /*#__PURE__*/function (_Vue) {
       maskCanvasCtx.setLineDash([4, 2]);
       maskCanvasCtx.lineDashOffset = -offset;
       maskCanvasCtx.lineWidth = 1;
-      maskCanvasCtx.strokeStyle = "#666";
+      maskCanvasCtx.strokeStyle = "#fff";
       maskCanvasCtx.rect(left, top, clipWidth, clipHeight);
       maskCanvasCtx.closePath();
       maskCanvasCtx.stroke();
       maskCanvasCtx.restore();
       this.borderPath = maskCanvasCtx;
       this.setClipMask();
-      this.setMenuPoints();
+      this.setMenuPoints(position);
     }
   }, {
     key: "setDoMenuPoint",
-    value: function setDoMenuPoint(x, y) {
+    value: function setDoMenuPoint(x, y, color) {
       var maskCanvasCtx = this.maskCanvasCtx;
       maskCanvasCtx.beginPath();
-      maskCanvasCtx.fillStyle = "#666";
+      maskCanvasCtx.fillStyle = color;
       maskCanvasCtx.rect(x, y, 9, 9);
       maskCanvasCtx.closePath();
       maskCanvasCtx.fill();
@@ -4199,7 +4482,7 @@ var maskvue_type_script_lang_ts_ClipMask = /*#__PURE__*/function (_Vue) {
     }
   }, {
     key: "setMenuPoints",
-    value: function setMenuPoints() {
+    value: function setMenuPoints(position) {
       var _this3 = this;
 
       this.menuPoints = [];
@@ -4248,10 +4531,8 @@ var maskvue_type_script_lang_ts_ClipMask = /*#__PURE__*/function (_Vue) {
         position: "bottomRight"
       };
       this.menuPoints.push(topLeft, topLeftMiddle, topRight, topBottomLeftMiddle, topBottomRightMiddle, bottomLeft, bottomLeftMiddle, bottomRight);
-      this.menuPoints.forEach(function (_ref) {
-        var x = _ref.x,
-            y = _ref.y;
-        return _this3.setDoMenuPoint(x - 4, y - 4);
+      this.menuPoints.forEach(function (item) {
+        return _this3.setDoMenuPoint(item.x - 4, item.y - 4, item.position === position ? "#36f" : "#fff");
       });
     }
   }, {
@@ -4378,10 +4659,10 @@ var maskvue_type_script_lang_ts_ClipMask = /*#__PURE__*/function (_Vue) {
           top = this.top,
           left = this.left;
       var path = this.getPath2DRect(left, top, clipWidth, clipHeight);
+      var menuPoints = this.menuPoints;
       this.setCursor(offsetX, offsetY, target);
 
       if (this.moving) {
-        var menuPoints = this.menuPoints;
         var point = menuPoints.find(function (obj) {
           var x = obj.x,
               y = obj.y;
@@ -4510,7 +4791,7 @@ var maskvue_type_script_lang_ts_ClipMask = /*#__PURE__*/function (_Vue) {
         bottomLeft: this.setClipBottomLeft
       };
       pointMoveMap[position].call(this, offsetX, offsetY);
-      this.setClipBorder();
+      this.setClipBorder(position);
     }
   }, {
     key: "setClipWidth",
@@ -4717,8 +4998,8 @@ function normalizeComponent (
 
 var component = normalizeComponent(
   plugin_maskvue_type_script_lang_ts_,
-  maskvue_type_template_id_1e5a53e2_render,
-  maskvue_type_template_id_1e5a53e2_staticRenderFns,
+  maskvue_type_template_id_77307938_render,
+  maskvue_type_template_id_77307938_staticRenderFns,
   false,
   null,
   null,
@@ -4728,6 +5009,8 @@ var component = normalizeComponent(
 
 /* harmony default export */ var mask = (component.exports);
 // CONCATENATED MODULE: ./node_modules/cache-loader/dist/cjs.js??ref--13-0!./node_modules/thread-loader/dist/cjs.js!./node_modules/babel-loader/lib!./node_modules/ts-loader??ref--13-3!./node_modules/cache-loader/dist/cjs.js??ref--0-0!./node_modules/vue-loader/lib??vue-loader-options!./src/plugin/index.vue?vue&type=script&lang=ts&
+
+
 
 
 
@@ -4763,6 +5046,15 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
   }
 
   _createClass(Clip, [{
+    key: "clipImage",
+    value: function clipImage() {
+      var left = this.left,
+          top = this.top,
+          maskClipWidth = this.maskClipWidth,
+          maskClipHeight = this.maskClipHeight;
+      this.clipCanvasToImage(left, top, maskClipWidth, maskClipHeight);
+    }
+  }, {
     key: "transformChange",
     value: function transformChange(value) {
       var imgWidth = this.imgWidth,
@@ -4791,6 +5083,11 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
   }, {
     key: "created",
     value: function created() {
+      this.setImageData(this.src);
+    }
+  }, {
+    key: "setImageData",
+    value: function setImageData(src) {
       var _this2 = this;
 
       this.img = new Image();
@@ -4799,18 +5096,43 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
         var _e$target = e.target,
             width = _e$target.width,
             height = _e$target.height,
-            type = _e$target.type;
+            type = _e$target.type,
+            name = _e$target.name;
         _this2.imageType = type;
+        _this2.imageName = name;
 
         var scale = _this2.scale(width, height);
 
-        _this2.setCanvasWH(scale); // this.initCanvasCtx();
-
+        _this2.setCanvasWH(scale);
 
         _this2.drawImageToCanvas(_this2.img);
       };
 
-      this.img.src = this.src;
+      this.img.src = src;
+    }
+  }, {
+    key: "dropImage",
+    value: function dropImage(event) {
+      var _this3 = this;
+
+      var fileData = event.dataTransfer.files;
+
+      var _fileData = _slicedToArray(fileData, 1),
+          file = _fileData[0];
+
+      var type = file.type;
+
+      if (/^image/.test(type)) {
+        var fileReader = new FileReader();
+
+        fileReader.onload = function (e) {
+          var result = e.target.result;
+
+          _this3.setImageData(result);
+        };
+
+        fileReader.readAsDataURL(file);
+      }
     }
   }, {
     key: "handleMouseWheel",
@@ -4886,6 +5208,7 @@ var pluginvue_type_script_lang_ts_Clip = /*#__PURE__*/function (_Vue) {
       var ctx = tempCanvas.getContext("2d");
       ctx.putImageData(imageData, 0, 0, 0, 0, width, height);
       this.previewImage = tempCanvas.toDataURL(this.imageType, 1.0);
+      this.$emit("clipCallBack", this.previewImage);
     }
   }, {
     key: "widthHeightChange",
@@ -4962,6 +5285,14 @@ __decorate([Prop({
   default: 200
 })], pluginvue_type_script_lang_ts_Clip.prototype, "clipWidth", void 0);
 
+__decorate([Prop({
+  default: true
+})], pluginvue_type_script_lang_ts_Clip.prototype, "showPreview", void 0);
+
+__decorate([Prop({
+  default: true
+})], pluginvue_type_script_lang_ts_Clip.prototype, "showControls", void 0);
+
 __decorate([Watch("transform")], pluginvue_type_script_lang_ts_Clip.prototype, "transformChange", null);
 
 pluginvue_type_script_lang_ts_Clip = __decorate([vue_class_component_esm({
@@ -5008,6 +5339,63 @@ external_commonjs_vue_commonjs2_vue_root_Vue_default.a.component({
 
 /* harmony default export */ var entry_lib = __webpack_exports__["default"] = (src_plugin_0);
 
+
+
+/***/ }),
+
+/***/ "fb6a":
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var $ = __webpack_require__("23e7");
+var isObject = __webpack_require__("861d");
+var isArray = __webpack_require__("e8b5");
+var toAbsoluteIndex = __webpack_require__("23cb");
+var toLength = __webpack_require__("50c4");
+var toIndexedObject = __webpack_require__("fc6a");
+var createProperty = __webpack_require__("8418");
+var wellKnownSymbol = __webpack_require__("b622");
+var arrayMethodHasSpeciesSupport = __webpack_require__("1dde");
+var arrayMethodUsesToLength = __webpack_require__("ae40");
+
+var HAS_SPECIES_SUPPORT = arrayMethodHasSpeciesSupport('slice');
+var USES_TO_LENGTH = arrayMethodUsesToLength('slice', { ACCESSORS: true, 0: 0, 1: 2 });
+
+var SPECIES = wellKnownSymbol('species');
+var nativeSlice = [].slice;
+var max = Math.max;
+
+// `Array.prototype.slice` method
+// https://tc39.github.io/ecma262/#sec-array.prototype.slice
+// fallback for not array-like ES3 strings and DOM objects
+$({ target: 'Array', proto: true, forced: !HAS_SPECIES_SUPPORT || !USES_TO_LENGTH }, {
+  slice: function slice(start, end) {
+    var O = toIndexedObject(this);
+    var length = toLength(O.length);
+    var k = toAbsoluteIndex(start, length);
+    var fin = toAbsoluteIndex(end === undefined ? length : end, length);
+    // inline `ArraySpeciesCreate` for usage native `Array#slice` where it's possible
+    var Constructor, result, n;
+    if (isArray(O)) {
+      Constructor = O.constructor;
+      // cross-realm fallback
+      if (typeof Constructor == 'function' && (Constructor === Array || isArray(Constructor.prototype))) {
+        Constructor = undefined;
+      } else if (isObject(Constructor)) {
+        Constructor = Constructor[SPECIES];
+        if (Constructor === null) Constructor = undefined;
+      }
+      if (Constructor === Array || Constructor === undefined) {
+        return nativeSlice.call(O, k, fin);
+      }
+    }
+    result = new (Constructor === undefined ? Array : Constructor)(max(fin - k, 0));
+    for (n = 0; k < fin; k++, n++) if (k in O) createProperty(result, n, O[k]);
+    result.length = n;
+    return result;
+  }
+});
 
 
 /***/ }),
