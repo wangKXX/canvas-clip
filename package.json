@@ -9,11 +9,7 @@
     "lint": "vue-cli-service lint"
   },
   "files": [
-    "dist/*",
-    "src/*",
-    "public/*",
-    "*.json",
-    "*.js"
+    "dist/*"
   ],
   "repository": {
     "type": "git",
