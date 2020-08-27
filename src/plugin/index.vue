@@ -92,23 +92,19 @@ export default class Clip extends Vue {
   @Watch("transform")
   private transformChange(value: number) {
     const { imgWidth, imgHeight } = this;
+    const { canvas } = this.$refs;
     this.canvasCtx.clearRect(-1, -1, imgWidth + 4, imgHeight + 4);
     this.canvasCtx.translate(imgWidth / 2, imgHeight / 2);
-    this.canvasCtx.rotate(value * (Math.PI / 180));
-    this.canvasCtx.translate(-(imgWidth / 2), -(imgHeight / 2));
+    this.canvasCtx.rotate(value * Math.PI / 180);
+    this.canvasCtx.translate(-imgWidth / 2, -imgHeight / 2);
     this.drawImageToCanvas(this.img);
+    this.canvasCtx.translate(imgWidth / 2, imgHeight / 2);
+    this.canvasCtx.rotate(-value * Math.PI / 180);
+    this.canvasCtx.translate(-imgWidth / 2, -imgHeight / 2);
   }
 
   private getChild(clip: any) {
     this.clip = clip;
-  }
-
-  private resetRotate() {
-    const { imgWidth, imgHeight } = this;
-    this.canvasCtx.translate(imgWidth / 2, imgHeight / 2);
-    this.canvasCtx.rotate(0);
-    this.canvasCtx.translate(-(imgWidth / 2), -(imgHeight / 2));
-    this.drawImageToCanvas(this.img);
   }
 
   private created() {
@@ -181,9 +177,9 @@ export default class Clip extends Vue {
     this.canvasCtx = canvas.getContext("2d");
   }
 
-  private drawImageToCanvas(img: any) {
+  private drawImageToCanvas(img: any, x?: number, y?: number) {
     const { imgWidth, imgHeight } = this;
-    this.canvasCtx.drawImage(img, 0, 0, imgWidth, imgHeight);
+    this.canvasCtx.drawImage(img, x || 0, y || 0, imgWidth, imgHeight);
   }
 
   private scale(w: number, h: number): object {
