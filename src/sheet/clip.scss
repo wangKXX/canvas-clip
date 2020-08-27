@@ -23,6 +23,7 @@ html, body{
     align-items: center;
     color: #333;
     font-size: 14px;
+    padding: 8px 0;
     .show-part{
       input{
         transition: all .6s;
@@ -62,6 +63,16 @@ html, body{
       display: table-cell;
     }
   }
+  .resoult-part {
+    img{
+      margin-top: 8px;
+    }
+    a {
+      text-decoration: none;
+      color: #36f;
+      font-size: 14px;
+    }
+  }
 }
 .clip{
   position: relative;
@@ -69,6 +80,7 @@ html, body{
   height: fit-content;
   background-color: #000;
   overflow: hidden;
+  margin: 0 auto;
   canvas{
     display: block;
   }

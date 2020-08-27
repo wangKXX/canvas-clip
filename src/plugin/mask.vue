@@ -128,38 +128,38 @@ export default class ClipMask extends Vue {
   private maskCanvasClear() {
     const { width, height } = this;
     this.maskCanvasCtx.clearRect(0, 0, width, height);
-    this.maskCanvasCtx.fillStyle = "rgba(255, 255, 255, .6)";
+    this.maskCanvasCtx.fillStyle = "rgba(0, 0, 0, .4)";
     this.maskCanvasCtx.fillRect(0, 0, width, height);
   }
 
-  private setClipBorder() {
+  private setClipBorder(position?: string) {
     const { clipWidth, clipHeight, top, left, maskCanvasCtx, offset } = this;
     this.maskCanvasClear();
     maskCanvasCtx.beginPath();
     maskCanvasCtx.setLineDash([4, 2]);
     maskCanvasCtx.lineDashOffset = -offset;
     maskCanvasCtx.lineWidth = 1;
-    maskCanvasCtx.strokeStyle = "#666";
+    maskCanvasCtx.strokeStyle = "#fff";
     maskCanvasCtx.rect(left, top, clipWidth, clipHeight);
     maskCanvasCtx.closePath();
     maskCanvasCtx.stroke();
     maskCanvasCtx.restore();
     this.borderPath = maskCanvasCtx;
     this.setClipMask();
-    this.setMenuPoints();
+    this.setMenuPoints(position);
   }
 
-  private setDoMenuPoint(x: number, y: number) {
+  private setDoMenuPoint(x: number, y: number, color: string) {
     const { maskCanvasCtx } = this;
     maskCanvasCtx.beginPath();
-    maskCanvasCtx.fillStyle = "#666";
+    maskCanvasCtx.fillStyle = color;
     maskCanvasCtx.rect(x, y, 9, 9);
     maskCanvasCtx.closePath();
     maskCanvasCtx.fill();
     maskCanvasCtx.restore();
   }
 
-  private setMenuPoints() {
+  private setMenuPoints(position?: string) {
     this.menuPoints = [];
     const { clipWidth, clipHeight, top, left } = this;
     const topLeft = { x: left, y: top, position: "topLeft" };
@@ -200,8 +200,8 @@ export default class ClipMask extends Vue {
       bottomLeftMiddle,
       bottomRight,
     );
-    this.menuPoints.forEach(({ x, y }: any) =>
-      this.setDoMenuPoint(x - 4, y - 4),
+    this.menuPoints.forEach((item: any) =>
+      this.setDoMenuPoint(item.x - 4, item.y - 4, item.position ===  position ? "#36f" : "#fff"),
     );
   }
 
@@ -310,10 +310,10 @@ export default class ClipMask extends Vue {
     const { offsetX, offsetY, target } = e;
     const { clipWidth, clipHeight, top, left } = this;
     const path = this.getPath2DRect(left, top, clipWidth, clipHeight);
+    const { menuPoints } = this;
     this.setCursor(offsetX, offsetY, target);
     if (this.moving) {
-      const { menuPoints } = this;
-      let point = menuPoints.find((obj: { [key: string]: any }) => {
+      let point: any = menuPoints.find((obj: { [key: string]: any }) => {
         const { x, y } = obj;
         const pointPath = this.getPath2DRect(x - 4, y - 4, 9, 9);
         return this.isPointInClip(offsetX, offsetY, pointPath);
@@ -423,7 +423,7 @@ export default class ClipMask extends Vue {
       bottomLeft: this.setClipBottomLeft,
     };
     pointMoveMap[position].call(this, offsetX, offsetY);
-    this.setClipBorder();
+    this.setClipBorder(position);
   }
 
   private setClipWidth(offsetX: number, offsetY: number) {

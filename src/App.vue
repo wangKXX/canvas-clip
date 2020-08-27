@@ -5,6 +5,8 @@
       :clipHeight="100"
       :clipWidth="100"
       :height="400"
+      :showPreview="false"
+      :showControls="true"
     />
   </div>
 </template>

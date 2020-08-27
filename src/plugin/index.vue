@@ -1,17 +1,30 @@
 <template>
   <div class="clip-wrap">
     <div class="clip-menu">
-      <span class="show-part">
+      <span class="show-part" v-if="showControls">
         <span class="txt">宽度：</span><input v-model="maskClipWidth" />
         <span class="txt">高度：</span><input v-model="maskClipHeight" />
         <span class="txt">旋转：</span
-        ><input v-model="transform" type="range" min="0" max="180" step="1"/>
+        ><input v-model="transform" type="range" min="0" max="180" step="1" />
       </span>
       <span>
         <span class="txt btn" @click="handleClick">裁剪</span>
       </span>
     </div>
-    <div class="clip" ref="clip" @mousewheel="handleMouseWheel" @mousedown.stop="handleMouseDown" @mousemove.stop="handleMouseMove" @mouseup.stop="handleMouseUp">
+    <div
+      class="clip"
+      ref="clip"
+      @mousewheel="handleMouseWheel"
+      @mousedown.stop="handleMouseDown"
+      @mousemove.stop="handleMouseMove"
+      @mouseup.stop="handleMouseUp"
+      @drop.stop.prevent="dropImage"
+      @dragleave.stop.prevent
+      @dragover.stop.prevent
+      @dragenter.stop.prevent
+      @dragend.stop.prevent
+      @dragstart.stop.prevent
+    >
       <canvas ref="canvas"></canvas>
       <clip-mask
         :width="imgWidth"
@@ -23,7 +36,10 @@
         ref="clip"
       />
     </div>
-    <img :src="previewImage" v-if="previewImage" class="priview" />
+    <div class="resoult-part" v-if="previewImage && showPreview">
+      <img :src="previewImage" class="priview" />
+      <a :href="previewImage" :download="imageName">下载</a>
+    </div>
   </div>
 </template>
 
@@ -46,6 +62,7 @@ export default class Clip extends Vue {
   public imgHeight: number = 0;
   public canvasCtx!: any;
   public imageType!: string;
+  public imageName!: string;
   public previewImage: any = "";
   public maskClipHeight: number = 200;
   public maskClipWidth: number = 200;
@@ -64,6 +81,13 @@ export default class Clip extends Vue {
   @Prop({ default: 500 }) public height!: number;
   @Prop({ default: 200 }) public clipHeight!: number;
   @Prop({ default: 200 }) public clipWidth!: number;
+  @Prop({ default: true }) public showPreview!: boolean;
+  @Prop({ default: true }) public showControls!: boolean;
+
+  public clipImage() {
+    const { left, top, maskClipWidth, maskClipHeight } = this;
+    this.clipCanvasToImage(left, top, maskClipWidth, maskClipHeight);
+  }
 
   @Watch("transform")
   private transformChange(value: number) {
@@ -88,16 +112,36 @@ export default class Clip extends Vue {
   }
 
   private created() {
+    this.setImageData(this.src);
+  }
+
+  private setImageData(src: string) {
     this.img = new Image();
     this.img.onload = (e: any) => {
-      const { width, height, type } = e.target;
+      const { width, height, type, name } = e.target;
       this.imageType = type;
+      this.imageName = name;
       const scale: any = this.scale(width, height);
       this.setCanvasWH(scale);
-      // this.initCanvasCtx();
       this.drawImageToCanvas(this.img);
     };
-    this.img.src = this.src;
+    this.img.src = src;
+  }
+
+  private dropImage(event: any) {
+    const fileData = event.dataTransfer.files;
+    const [file] = fileData;
+    const { type } = file;
+    if (/^image/.test(type)) {
+      const fileReader = new FileReader();
+      fileReader.onload = (e: any) => {
+        const {
+          target: { result },
+        } = e;
+        this.setImageData(result);
+      };
+      fileReader.readAsDataURL(file);
+    }
   }
 
   private handleMouseWheel(e: any) {
@@ -166,6 +210,7 @@ export default class Clip extends Vue {
     const ctx: any = tempCanvas.getContext("2d");
     ctx.putImageData(imageData, 0, 0, 0, 0, width, height);
     this.previewImage = tempCanvas.toDataURL(this.imageType, 1.0);
+    this.$emit("clipCallBack", this.previewImage);
   }
 
   private widthHeightChange(obj: any) {
@@ -186,7 +231,14 @@ export default class Clip extends Vue {
   }
 
   private handleMouseMove(e: MouseEvent) {
-    const { isImgCanMove, startX, startY, imgWidth, imgHeight, isMoving } = this;
+    const {
+      isImgCanMove,
+      startX,
+      startY,
+      imgWidth,
+      imgHeight,
+      isMoving,
+    } = this;
     const { offsetX, offsetY } = e;
     if (isImgCanMove && isMoving) {
       const isInMenu = this.clip.isInMenuPart(offsetX, offsetY);
