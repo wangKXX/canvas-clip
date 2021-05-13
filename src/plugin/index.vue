@@ -46,6 +46,7 @@
 <script lang="ts">
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 import clipMask from "./mask.vue";
+import { Position } from "./interface";
 
 @Component({
   components: {
@@ -113,6 +114,7 @@ export default class Clip extends Vue {
 
   private setImageData(src: string) {
     this.img = new Image();
+    this.img.crossOrigin = "Anonymous";
     this.img.onload = (e: any) => {
       const { width, height, type, name } = e.target;
       this.imageType = type;
@@ -209,7 +211,7 @@ export default class Clip extends Vue {
     this.$emit("clipCallBack", this.previewImage);
   }
 
-  private widthHeightChange(obj: any) {
+  private widthHeightChange(obj: Position) {
     const { width, height, top, left } = obj;
     Object.assign(this, {
       maskClipWidth: width,

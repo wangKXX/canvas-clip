@@ -10,6 +10,7 @@
 
 <script lang="ts">
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
+import { Point } from "./interface";
 
 @Component
 export default class ClipMask extends Vue {
@@ -44,7 +45,7 @@ export default class ClipMask extends Vue {
   public offset: number = 0;
   public maskCanvasData!: any;
   public borderPath!: any;
-  public menuPoints!: object[];
+  public menuPoints!: Point[];
   public isPointMoving: boolean = false;
   public currentPoint!: any;
 
@@ -200,8 +201,8 @@ export default class ClipMask extends Vue {
       bottomLeftMiddle,
       bottomRight,
     );
-    this.menuPoints.forEach((item: any) =>
-      this.setDoMenuPoint(item.x - 4, item.y - 4, item.position ===  position ? "#36f" : "#fff"),
+    this.menuPoints.forEach((item: Point) =>
+        this.setDoMenuPoint(item.x - 4, item.y - 4, item.position ===  position ? "#36f" : "#fff"),
     );
   }
 

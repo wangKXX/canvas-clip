@@ -5,7 +5,7 @@
       :clipHeight="100"
       :clipWidth="100"
       :height="400"
-      :showPreview="false"
+      :showPreview="true"
       :showControls="true"
     />
   </div>
@@ -21,7 +21,7 @@ import clip from "@/plugin/index.vue";
   },
 })
 export default class App extends Vue {
-  private src: any = require("./assets/1.jpeg");
+  private src: any = "https://cdn.glitch.com/4c9ebeb9-8b9a-4adc-ad0a-238d9ae00bb5%2Fmdn_logo-only_color.svg?1535749917189";
 }
 </script>
 

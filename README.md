@@ -25,6 +25,8 @@ clipCallBack|裁剪后的图片
 
 clipImage: 手动触发裁剪，可用于用户自定义何时触发裁剪事件
 
+## attention
+仅支持同域和设置了跨域的图片地址
 ## example:
 ```
 <template>
